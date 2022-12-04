@@ -1,2 +1,4 @@
-# com_2022
-Project for Computerization of Measuremenets course
+# Computerization of Measurements Project
+
+Spatial measurements of objects using a stepper motor.  
+Semester 7, year 2022.

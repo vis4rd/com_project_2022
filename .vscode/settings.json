@@ -1,0 +1,20 @@
+{
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": true
+        },
+    },
+    "python.formatting.provider": "black",
+    "python.linting.pycodestyleEnabled": true,
+    "python.linting.mypyEnabled": true,
+    "python.linting.pycodestyleArgs": [
+        "--max-line-length", "100"
+    ],
+    "python.analysis.typeCheckingMode": "basic",
+
+    "black-formatter.args": [
+        "--line-length", "100",
+    ],
+}
