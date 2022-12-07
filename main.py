@@ -138,14 +138,34 @@ class Simulator:
         return b"simulated response"
 
 
-def main():
+class Button(tk.Button):
+    def __init__(self, master: tk.Misc, entry: tk.Entry, device: Device):
+        super().__init__(master, text="Send", command=self.button_command)
+        self.entry = entry
+        self.device = device
+
+    def _entry_delete_callback(self):
+        self.entry.delete(0, "end")
+
+    def _device_send_command_callback(self, entry_text: str):
+        print(self.device.send_command(entry_text))
+
+    def button_command(self):
+        entry_text = self.entry.get()
+        if entry_text:
+            self._device_send_command_callback(entry_text)
+
+        self._entry_delete_callback()
+
+
+GLOBAL_VALUE: int = 0  # set this in _device_send_command_callback and send to plot
+
+
+def main() -> None:
     simulator = Simulator()  # comment this line when working on actual arduino
     simulator.simulate_delay = True
 
     device = Device()
-    print(device.send_command("measure"))
-    print(device.send_command("rotate 19"))
-    print(device.send_command("speed 90"))
 
     root = tk.Tk()
     root.geometry("800x400+300+300")
@@ -161,9 +181,7 @@ def main():
     ent1 = tk.Entry(frame)
     ent1.grid(row=0, column=1)
 
-    send_button = tk.Button(
-        frame, text="Send", command=lambda: print("the label is", ent1.cget("text"))
-    )
+    send_button = Button(frame, ent1, device)
     send_button.grid(row=0, column=2)
 
     root.mainloop()
