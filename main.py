@@ -1,10 +1,14 @@
 import random
 import sys
+import threading
 import time
 import tkinter as tk
+from abc import abstractmethod
 from unittest.mock import Mock
 
 import serial
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
 from pytest import MonkeyPatch
 
 # def command(device, rotate_steps: int) -> list[int]:
@@ -41,24 +45,6 @@ from pytest import MonkeyPatch
 # * ulozenie osi wykresu
 # * rysowanie odleglosci w czasie na wykresie (w czasie rzeczywistym)
 # * dodac command2() do Device
-
-
-class Plot(tk.Frame):
-    def __init__(self):
-        super().__init__(background="black", padx=1, pady=1)
-
-        self.canvas = tk.Canvas(self, bg="white")
-        self.draw_point(50, 50)
-        self.canvas.grid(row=0, column=0)
-
-    def draw_point(self, x: float, y: float, size: float = 6):
-        self.canvas.create_oval(
-            x - size / 2.0,
-            y - size / 2.0,
-            x + size / 2.0,
-            y + size / 2.0,
-            fill="black",
-        )
 
 
 class Device:
@@ -138,27 +124,75 @@ class Simulator:
         return b"simulated response"
 
 
+class Task:
+    def __init__(self) -> None:
+        self._keep_alive: bool = True
+
+    @property
+    def keep_alive(self):
+        return self._keep_alive
+
+    @keep_alive.setter
+    def keep_alive(self, value: bool):
+        self._keep_alive = value
+
+    @abstractmethod
+    def func(self):
+        ...
+
+    def prepare(self):
+        pass
+
+    def run(self):
+        self.prepare()
+        while self._keep_alive:
+            self.func()
+
+        print("Thread killed")
+
+
+class PlotterTask(Task):
+    def __init__(self, ax, graph) -> None:
+        super().__init__()
+        self.ax = ax
+        self.graph = graph
+
+    def func(self):
+        self.ax.cla()
+        self.ax.grid()
+        if self.iter < 10:
+            self.data.append(self.iter)
+            self.ax.plot(range(0, len(self.data)), self.data, marker="o", color="orange")
+            self.graph.draw()
+            time.sleep(1)
+            self.iter += 1
+        else:
+            self.ax.plot(range(0, len(self.data)), self.data, marker="o", color="orange")
+            self.graph.draw()
+
+    def prepare(self):
+        self.iter = 0
+        self.data = []
+
+
 class Button(tk.Button):
-    def __init__(self, master: tk.Misc, entry: tk.Entry, device: Device):
+    def __init__(self, master: tk.Misc, entry: tk.Entry, device: Device) -> None:
         super().__init__(master, text="Send", command=self.button_command)
         self.entry = entry
         self.device = device
 
-    def _entry_delete_callback(self):
+    def _entry_delete_callback(self) -> None:
         self.entry.delete(0, "end")
 
-    def _device_send_command_callback(self, entry_text: str):
+    def _device_send_command_callback(self, entry_text: str) -> None:
         print(self.device.send_command(entry_text))
 
-    def button_command(self):
-        entry_text = self.entry.get()
+    def button_command(self) -> None:
+        entry_text: str = self.entry.get()
         if entry_text:
             self._device_send_command_callback(entry_text)
 
         self._entry_delete_callback()
-
-
-GLOBAL_VALUE: int = 0  # set this in _device_send_command_callback and send to plot
 
 
 def main() -> None:
@@ -170,8 +204,6 @@ def main() -> None:
     root = tk.Tk()
     root.geometry("800x400+300+300")
 
-    plot = Plot()
-    plot.grid(row=1, column=0)
     frame = tk.Frame()  # container for inputs
     frame.grid(row=0, column=0)
 
@@ -181,9 +213,32 @@ def main() -> None:
     ent1 = tk.Entry(frame)
     ent1.grid(row=0, column=1)
 
-    send_button = Button(frame, ent1, device)
+    fig = Figure()
+    ax = fig.add_subplot(111)
+    ax.set_xlabel("X axis")
+    ax.set_ylabel("Y axis")
+    ax.grid()
+
+    graph = FigureCanvasTkAgg(fig, master=root)
+    graph.get_tk_widget().grid(row=1, column=0)
+
+    task = PlotterTask(ax, graph)
+
+    def gui_handler(task: Task):
+        # continue_plotting = not continue_plotting
+        threading.Thread(target=task.run).start()
+
+    # send_button = tk.Button(frame, text="Send command", command=lambda: gui_handler(task))
+    send_button = tk.Button(frame, text="Send command", command=lambda: gui_handler(task))
     send_button.grid(row=0, column=2)
 
+    def on_close_callback(task: Task) -> None:
+        task.keep_alive = False
+        print("bajo jajo")
+        time.sleep(0.5)
+        root.destroy()  # comment this to have fun
+
+    root.protocol("WM_DELETE_WINDOW", lambda: on_close_callback(task))
     root.mainloop()
 
 
