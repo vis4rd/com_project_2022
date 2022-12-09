@@ -6,15 +6,31 @@
             "source.organizeImports": true
         },
     },
-    "python.formatting.provider": "black",
-    "python.linting.pycodestyleEnabled": true,
+    "black-formatter.args": [
+        "--line-length", "100",
+    ],
+    "python.languageServer": "Pylance",
+    "python.formatting.provider": "none",
+    "python.analysis.typeCheckingMode": "basic",
     "python.linting.mypyEnabled": true,
+    "python.linting.mypyArgs": [
+        "--follow-imports=silent",
+        "--ignore-missing-imports",
+        "--show-column-numbers",
+        "--no-pretty",
+        "--check-untyped-defs"
+    ],
+    "python.linting.pycodestyleEnabled": true,
     "python.linting.pycodestyleArgs": [
         "--max-line-length", "100"
     ],
-    "python.analysis.typeCheckingMode": "basic",
-
-    "black-formatter.args": [
-        "--line-length", "100",
+    "python.linting.flake8Enabled": true,
+    "python.linting.flake8Args": [
+        "--max-line-length", "100",
+        "--skip", "__init__.py"
+    ],
+    "python.sortImports.args": [
+        "--profile", "black",
+        "--skip", "__init__.py"
     ],
 }
