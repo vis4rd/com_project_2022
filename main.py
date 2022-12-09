@@ -1,15 +1,11 @@
-import random
-import sys
 import threading
 import time
 import tkinter as tk
-from abc import abstractmethod
-from unittest.mock import Mock
 
-import serial
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
-from pytest import MonkeyPatch
+
+from src import Device, PlotterTask, Simulator, Task
 
 # def command(device, rotate_steps: int) -> list[int]:
 #     results: list[int] = []
@@ -45,134 +41,6 @@ from pytest import MonkeyPatch
 # * ulozenie osi wykresu
 # * rysowanie odleglosci w czasie na wykresie (w czasie rzeczywistym)
 # * dodac command2() do Device
-
-
-class Device:
-    _device: serial.Serial
-
-    def __init__(self) -> None:
-        try:
-            self._device = serial.Serial(port="COM4", baudrate=9600, timeout=2)
-        except serial.SerialException as e:
-            print(f"ERROR: {e}")
-            sys.exit(1)
-        else:
-            device_good: bool = self._device.is_open
-            print(
-                f"device name: '{self._device.name}', port open: {'yes' if device_good else 'no'}"
-            )
-
-            if not device_good:
-                raise RuntimeError("Device port could not be opened")
-
-            self._device.readline()
-            # send_command(device, "measure")
-            # send_command(device, "rotate 10")
-
-    def __del__(self):
-        self._device.close()
-
-    def send_command(self, command: str) -> str:
-        self._device.write(command.encode())
-
-        return self._device.readline().decode()
-
-
-class Simulator:
-    monkeypatch = MonkeyPatch()
-    simulate_delay: bool = False
-
-    def __init__(self):
-        self._mock_serial()
-        self._mock_device()
-
-    def _mock_serial(self):
-        self.mock_serial = Mock(serial.Serial)
-        self.mock_serial.is_open = True
-        self.mock_serial.name = "Serial Simulator"
-
-        self.mock_serial.call = Mock(serial.Serial)
-        self.mock_serial.call.return_value = self.mock_serial
-        self.monkeypatch.setattr("serial.Serial", self.mock_serial.call)
-
-    def _mock_device(self):
-        def simulator(command: str) -> str:
-            def random_delay() -> int:
-                return random.randint(1, 4)
-
-            def random_distance() -> int:
-                return random.randint(0, 5000)
-
-            if self.simulate_delay:
-                time.sleep(random_delay())
-
-            match command.split():
-                case ["measure", *_]:
-                    return f"distance: {random_distance()}"
-                case ["rotate", *_]:
-                    return "Rotating..."
-                case ["speed", *_] as args:
-                    return f"New Speed = {args[1]}"
-                case _:
-                    return ""
-
-        self.mock_send_command = Mock()
-        self.mock_send_command.side_effect = simulator
-        self.monkeypatch.setattr(Device, "send_command", self.mock_send_command)
-
-    def _readline_simulator(self):
-        return b"simulated response"
-
-
-class Task:
-    def __init__(self) -> None:
-        self._keep_alive: bool = True
-
-    @property
-    def keep_alive(self):
-        return self._keep_alive
-
-    @keep_alive.setter
-    def keep_alive(self, value: bool):
-        self._keep_alive = value
-
-    @abstractmethod
-    def func(self):
-        ...
-
-    def prepare(self):
-        pass
-
-    def run(self):
-        self.prepare()
-        while self._keep_alive:
-            self.func()
-
-        print("Thread killed")
-
-
-class PlotterTask(Task):
-    def __init__(self, ax, graph) -> None:
-        super().__init__()
-        self.ax = ax
-        self.graph = graph
-
-    def func(self):
-        self.ax.cla()
-        self.ax.grid()
-        if self.iter < 10:
-            self.data.append(self.iter)
-            self.ax.plot(range(0, len(self.data)), self.data, marker="o", color="orange")
-            self.graph.draw()
-            time.sleep(1)
-            self.iter += 1
-        else:
-            self.ax.plot(range(0, len(self.data)), self.data, marker="o", color="orange")
-            self.graph.draw()
-
-    def prepare(self):
-        self.iter = 0
-        self.data = []
 
 
 class Button(tk.Button):
