@@ -9,7 +9,7 @@ class PlotterTask(Task):
         self.ax = ax
         self.graph = graph
 
-    def func(self):
+    def func(self) -> None:
         self.ax.cla()
         self.ax.grid()
         if self.iter < 10:
@@ -22,6 +22,6 @@ class PlotterTask(Task):
             self.ax.plot(range(0, len(self.data)), self.data, marker="o", color="orange")
             self.graph.draw()
 
-    def prepare(self):
-        self.iter = 0
-        self.data = []
+    def prepare(self) -> None:
+        self.iter: int = 0
+        self.data: list[int] = []

@@ -12,11 +12,11 @@ class Simulator:
     monkeypatch = MonkeyPatch()
     simulate_delay: bool = False
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._mock_serial()
         self._mock_device()
 
-    def _mock_serial(self):
+    def _mock_serial(self) -> None:
         self.mock_serial = Mock(serial.Serial)
         self.mock_serial.is_open = True
         self.mock_serial.name = "Serial Simulator"
@@ -25,7 +25,7 @@ class Simulator:
         self.mock_serial.call.return_value = self.mock_serial
         self.monkeypatch.setattr("serial.Serial", self.mock_serial.call)
 
-    def _mock_device(self):
+    def _mock_device(self) -> None:
         def simulator(command: str) -> str:
             def random_delay() -> int:
                 return random.randint(1, 4)
@@ -50,5 +50,5 @@ class Simulator:
         self.mock_send_command.side_effect = simulator
         self.monkeypatch.setattr(Device, "send_command", self.mock_send_command)
 
-    def _readline_simulator(self):
+    def _readline_simulator(self) -> bytes:
         return b"simulated response"

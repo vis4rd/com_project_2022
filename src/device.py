@@ -25,7 +25,7 @@ class Device:
             # send_command(device, "measure")
             # send_command(device, "rotate 10")
 
-    def __del__(self):
+    def __del__(self) -> None:
         self._device.close()
 
     def send_command(self, command: str) -> str:

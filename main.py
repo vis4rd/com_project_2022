@@ -92,7 +92,7 @@ def main() -> None:
 
     task = PlotterTask(ax, graph)
 
-    def gui_handler(task: Task):
+    def gui_handler(task: Task) -> None:
         # continue_plotting = not continue_plotting
         threading.Thread(target=task.run).start()
 

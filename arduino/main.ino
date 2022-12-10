@@ -1,4 +1,4 @@
-#include //dodajemy do szkicu bibliotekę obsługującą silniki krokowe
+#include <Stepper.h> //dodajemy do szkicu bibliotekę obsługującą silniki krokowe
 
 #define STEP_COUNT 32
 
