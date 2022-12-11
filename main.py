@@ -43,26 +43,6 @@ from src import Device, PlotterTask, Simulator, Task
 # * dodac command2() do Device
 
 
-class Button(tk.Button):
-    def __init__(self, master: tk.Misc, entry: tk.Entry, device: Device) -> None:
-        super().__init__(master, text="Send", command=self.button_command)
-        self.entry = entry
-        self.device = device
-
-    def _entry_delete_callback(self) -> None:
-        self.entry.delete(0, "end")
-
-    def _device_send_command_callback(self, entry_text: str) -> None:
-        print(self.device.send_command(entry_text))
-
-    def button_command(self) -> None:
-        entry_text: str = self.entry.get()
-        if entry_text:
-            self._device_send_command_callback(entry_text)
-
-        self._entry_delete_callback()
-
-
 def main() -> None:
     simulator = Simulator()  # comment this line when working on actual arduino
     simulator.simulate_delay = True
@@ -92,18 +72,41 @@ def main() -> None:
 
     task = PlotterTask(ax, graph)
 
-    def gui_handler(task: Task) -> None:
-        # continue_plotting = not continue_plotting
-        threading.Thread(target=task.run).start()
+    def reset_task(task: PlotterTask) -> None:
+        # Kill previous thread and wait for it to join (does not work for some reason)
+        task.keep_alive = False
+        task.set_input_text("")
+        time.sleep(1)
 
-    # send_button = tk.Button(frame, text="Send command", command=lambda: gui_handler(task))
+        task.keep_alive = True
+
+    def gui_handler(task: PlotterTask) -> None:
+        input_text: str = ent1.get()
+        ent1.delete(0, "end")
+        if not input_text:
+            return
+
+        match input_text.split():
+            case ["measure", *_]:
+                print(device.send_command(input_text))
+            case ["rotate", *_]:
+                print(device.send_command(input_text))
+            case ["speed", *_] as args:
+                print(device.send_command(input_text))
+            case ["multimeasure", *_]:
+                print("ohno")
+                reset_task(task)
+                threading.Thread(target=task.run).start()
+            case _:
+                pass
+
     send_button = tk.Button(frame, text="Send command", command=lambda: gui_handler(task))
     send_button.grid(row=0, column=2)
 
     def on_close_callback(task: Task) -> None:
         task.keep_alive = False
         print("bajo jajo")
-        time.sleep(0.5)
+        time.sleep(1)
         root.destroy()  # comment this to have fun
 
     root.protocol("WM_DELETE_WINDOW", lambda: on_close_callback(task))
