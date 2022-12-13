@@ -39,16 +39,22 @@ def main() -> None:
     graph = FigureCanvasTkAgg(fig, master=root)
     graph.get_tk_widget().grid(row=1, column=0)
 
-    task = PlotterTask(ax, graph)
-    arduino_task = ArduinoTask(device, 0, 0, task)
+    plotter_task = PlotterTask(ax, graph)
+    arduino_task = ArduinoTask(device, 0, 0, plotter_task)
 
-    def reset_task(task: Task, wait_seconds: int = 1) -> None:
+    plotter_thread = threading.Thread(name="PlotterThread", target=plotter_task.run)
+    arduino_thread = threading.Thread(name="ArduinoThread", target=arduino_task.run)
+
+    def reset_task(task: Task, thread: threading.Thread) -> None:
         # Kill previous thread and wait for it to join (does not work for some reason)
+        if not thread.is_alive():
+            return
+
         task.keep_alive = False
-        time.sleep(wait_seconds)
+        thread.join()
         task.keep_alive = True
 
-    def gui_handler(task: PlotterTask) -> None:
+    def gui_handler() -> None:
         input_text: str = ent1.get()
         ent1.delete(0, "end")
         if not input_text:
@@ -62,28 +68,29 @@ def main() -> None:
             case ["speed", *_] as args:
                 print(device.send_command(input_text))
             case ["multimeasure", *_] as args:  # multimeasure 20 30
-                reset_task(arduino_task, 5)
+                reset_task(arduino_task, arduino_thread)
                 arduino_task.setter(int(args[1]), int(args[2]))
 
-                reset_task(task)
-                task.set_input_text("")
+                reset_task(plotter_task, plotter_thread)
+                plotter_task.set_input_text("")
 
-                threading.Thread(target=arduino_task.run).start()
-                threading.Thread(target=task.run).start()
+                arduino_thread.start()
+                plotter_thread.start()
             case _:
                 pass
 
-    send_button = tk.Button(frame, text="Send command", command=lambda: gui_handler(task))
+    send_button = tk.Button(frame, text="Send command", command=gui_handler)
     send_button.grid(row=0, column=2)
 
     def on_close_callback(task: Task) -> None:
         task.keep_alive = False
         arduino_task.keep_alive = False
         print("bajo jajo")
-        time.sleep(1)
+        plotter_thread.join()
+        arduino_thread.join()
         root.destroy()  # comment this to have fun
 
-    root.protocol("WM_DELETE_WINDOW", lambda: on_close_callback(task))
+    root.protocol("WM_DELETE_WINDOW", lambda: on_close_callback(plotter_task))
     root.mainloop()
 
 
