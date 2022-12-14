@@ -1,11 +1,10 @@
-import threading
-import time
 import tkinter as tk
+from threading import Event, Thread
 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
-from src import ArduinoTask, Device, PlotterTask, Simulator, Task
+from src import ArduinoThread, Device, PlotterThread, Simulator
 
 # TODO:
 # * zapis wynikow do pliku
@@ -13,8 +12,8 @@ from src import ArduinoTask, Device, PlotterTask, Simulator, Task
 
 
 def main() -> None:
-    simulator = Simulator()  # comment this line when working on actual arduino
-    simulator.simulate_delay = True
+    # simulator = Simulator()  # comment this line when working on actual arduino
+    # simulator.simulate_delay = True
 
     device = Device()
 
@@ -39,20 +38,38 @@ def main() -> None:
     graph = FigureCanvasTkAgg(fig, master=root)
     graph.get_tk_widget().grid(row=1, column=0)
 
-    plotter_task = PlotterTask(ax, graph)
-    arduino_task = ArduinoTask(device, 0, 0, plotter_task)
+    events: dict[str, Event] = {
+        "terminate_all": Event(),
+        "has_draw_data": Event(),
+    }
 
-    plotter_thread = threading.Thread(name="PlotterThread", target=plotter_task.run)
-    arduino_thread = threading.Thread(name="ArduinoThread", target=arduino_task.run)
+    data: dict[str, str | None] = {
+        "draw_data": None,
+    }
 
-    def reset_task(task: Task, thread: threading.Thread) -> None:
+    plotter_thread = PlotterThread(ax, graph, events=events, data=data)
+    arduino_thread = ArduinoThread(
+        device, starting_angle=0, ending_angle=0, events=events, data=data
+    )
+
+    def reset_thread(thread: Thread) -> None:
         # Kill previous thread and wait for it to join (does not work for some reason)
         if not thread.is_alive():
             return
 
-        task.keep_alive = False
+        print(f"Waiting for thread {thread.name} to join...")
         thread.join()
-        task.keep_alive = True
+        print(f"Thread {thread.name} joined.")
+
+    def reset_all_threads() -> None:
+        events["terminate_all"].set()
+
+        reset_thread(arduino_thread)
+        reset_thread(plotter_thread)
+
+        events["terminate_all"].clear()
+        events["has_draw_data"].clear()
+        data["draw_data"] = None
 
     def gui_handler() -> None:
         input_text: str = ent1.get()
@@ -68,11 +85,8 @@ def main() -> None:
             case ["speed", *_] as args:
                 print(device.send_command(input_text))
             case ["multimeasure", *_] as args:  # multimeasure 20 30
-                reset_task(arduino_task, arduino_thread)
-                arduino_task.setter(int(args[1]), int(args[2]))
-
-                reset_task(plotter_task, plotter_thread)
-                plotter_task.set_input_text("")
+                reset_all_threads()
+                arduino_thread.set_angles(int(args[1]), int((args[2])))
 
                 arduino_thread.start()
                 plotter_thread.start()
@@ -82,15 +96,13 @@ def main() -> None:
     send_button = tk.Button(frame, text="Send command", command=gui_handler)
     send_button.grid(row=0, column=2)
 
-    def on_close_callback(task: Task) -> None:
-        task.keep_alive = False
-        arduino_task.keep_alive = False
-        print("bajo jajo")
+    def on_close_callback() -> None:
+        events["terminate_all"].set()
         plotter_thread.join()
         arduino_thread.join()
         root.destroy()  # comment this to have fun
 
-    root.protocol("WM_DELETE_WINDOW", lambda: on_close_callback(plotter_task))
+    root.protocol("WM_DELETE_WINDOW", lambda: on_close_callback())
     root.mainloop()
 
 

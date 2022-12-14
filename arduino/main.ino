@@ -1,4 +1,4 @@
-#include <Stepper.h> //dodajemy do szkicu bibliotekę obsługującą silniki krokowe
+#include <Stepper.h>
 
 #define STEP_COUNT 32
 
@@ -10,15 +10,15 @@
 #define pinRight1 11
 #define pinRight2 13
 
-Stepper stepper(STEP_COUNT, pinLeft1, pinLeft2, pinRight1, pinRight2); //tutaj podajemy piny w Arduino, którymi sterujemy silnikiem
+Stepper stepper(STEP_COUNT, pinLeft1, pinLeft2, pinRight1, pinRight2);
 
 void setup()
 {
     Serial.begin(9600);
-    pinMode(trigPin, OUTPUT); //Pin, do którego podłączymy trig jako wyjście
-    pinMode(echoPin, INPUT); //a echo, jako wejście
+    pinMode(trigPin, OUTPUT);
+    pinMode(echoPin, INPUT);
 
-    stepper.setSpeed(100); //podajemy prędkość obrotu wyrażona w rpm
+    stepper.setSpeed(100);
 }
 
 int lastInputIndex = 0;
