@@ -16,13 +16,9 @@ class ArduinoThread(CustomThread):
         self.ending_angle: int = ending_angle % 360
         self.current_angle: int = self.starting_angle
 
-        # self.plot_task: PlotterThread = plot_task
-        # self.current_angle = self.starting_angle
         self.angle_step = ((self.ending_angle - self.starting_angle) > 0) * 2 - 1
 
         self.device.send_command(f"rotate {self.starting_angle}")
-
-        # self.setter(starting_angle, ending_angle)
 
     def run(self) -> None:
         while (self.current_angle >= 0) and (self.current_angle <= self.ending_angle):
@@ -42,14 +38,3 @@ class ArduinoThread(CustomThread):
         self.ending_angle = ending_angle
 
         self.current_angle = self.starting_angle
-
-    # def prepare(self) -> None:
-    #     self.current_angle = self.starting_angle
-    #     self.angle_step = ((self.ending_angle - self.starting_angle) > 0) * 2 - 1
-
-    #     self.device.send_command(f"rotate {self.starting_angle}")
-
-    # def setter(self, starting_angle: int, ending_angle: int) -> None:
-    #     self.starting_angle = starting_angle % 360
-    #     self.ending_angle = ending_angle % 360
-    #     self.current_angle = starting_angle

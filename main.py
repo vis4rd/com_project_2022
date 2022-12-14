@@ -12,8 +12,8 @@ from src import ArduinoThread, Device, PlotterThread, Simulator
 
 
 def main() -> None:
-    simulator = Simulator()  # comment this line when working on actual arduino
-    simulator.simulate_delay = True
+    # simulator = Simulator()  # comment this line when working on actual arduino
+    # simulator.simulate_delay = True
 
     device = Device()
 
@@ -38,8 +38,6 @@ def main() -> None:
     graph = FigureCanvasTkAgg(fig, master=root)
     graph.get_tk_widget().grid(row=1, column=0)
 
-    # plotter_task = PlotterTask(ax, graph)
-    # arduino_task = ArduinoThread(device, 0, 0, plotter_task)
     events: dict[str, Event] = {
         "terminate_all": Event(),
         "has_draw_data": Event(),
@@ -87,11 +85,6 @@ def main() -> None:
             case ["speed", *_] as args:
                 print(device.send_command(input_text))
             case ["multimeasure", *_] as args:  # multimeasure 20 30
-                # reset_task(arduino_task, arduino_thread)
-                # arduino_task.setter(int(args[1]), int(args[2]))
-
-                # reset_task(plotter_task, plotter_thread)
-                # plotter_task.set_input_text("")
                 reset_all_threads()
                 arduino_thread.set_angles(int(args[1]), int((args[2])))
 
@@ -104,10 +97,7 @@ def main() -> None:
     send_button.grid(row=0, column=2)
 
     def on_close_callback() -> None:
-        # task.keep_alive = False
-        # arduino_task.keep_alive = False
         events["terminate_all"].set()
-        print("bajo jajo")
         plotter_thread.join()
         arduino_thread.join()
         root.destroy()  # comment this to have fun

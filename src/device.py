@@ -8,7 +8,7 @@ class Device:
 
     def __init__(self) -> None:
         try:
-            self._device = serial.Serial(port="COM4", baudrate=9600, timeout=2)
+            self._device = serial.Serial(port="COM3", baudrate=9600, timeout=2)
         except serial.SerialException as e:
             print(f"ERROR: {e}")
             sys.exit(1)
@@ -22,8 +22,6 @@ class Device:
                 raise RuntimeError("Device port could not be opened")
 
             self._device.readline()
-            # send_command(device, "measure")
-            # send_command(device, "rotate 10")
 
     def __del__(self) -> None:
         self._device.close()
